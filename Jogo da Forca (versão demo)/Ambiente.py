@@ -1,4 +1,11 @@
 import time
+import unicodedata
+
+def remover_acentos(texto):
+    """Transforma 'MÃE em MAE, Ç em C, etc..."""
+    return ''.join(c for c in unicodedata.normalize('NFD', texto)
+                   if unicodedata.category(c) != 'Mn')
+
 
 class Ambiente:
     def __init__(self, palavraObj, max_vidas=6):
@@ -96,9 +103,11 @@ class Ambiente:
         print("Palavra:", end=" ")
 
         palavraObj = self.palavraObj
+        letra_normalizada = remover_acentos(letra_chutada)
+
         for i in range(self.tam_palavra):
-            if (letra_chutada == palavraObj[i] and flg_acertou_letra == True):
-                self.palavraMontada[i] = letra_chutada
+            if (letra_normalizada == remover_acentos(palavraObj[i]) and flg_acertou_letra == True):
+                self.palavraMontada[i] = palavraObj[i] #Revela letra original (com acento, se houver)
 
         str_palavraMontada = "".join(self.palavraMontada) 
 
@@ -111,7 +120,7 @@ class Ambiente:
 
     def verificarLetra(self, letra, palavra_chute):
         if (palavra_chute != ""):
-            if (palavra_chute == self.palavraObj):
+            if (remover_acentos(palavra_chute) == remover_acentos(self.palavraObj)):
                 print("\n--- Sim você acertou, parabéns! ---")
                 return "Acertou"
             else:
@@ -119,7 +128,7 @@ class Ambiente:
                 self.vidas_restantes -= 1
                 return "Errou"
             
-        elif (letra in self.palavraObj):
+        elif (remover_acentos(letra) in remover_acentos(self.palavraObj)):
             print(f"Ambiente: A letra {letra} ESTÁ na palavra!\n")
             return True 
         else:
