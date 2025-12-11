@@ -5,7 +5,6 @@ import math
 from Agente import Agente
 from Ambiente import Ambiente
 
-# --- COMPONENTE VISUAL DA FORCA (GRÁFICO) ---
 def criar_forca_grafica():
     cor_madeira = "brown"
     cor_corpo = "black"
@@ -48,39 +47,58 @@ def criar_forca_grafica():
     partes_corpo = [cabeca, tronco, braco_esq, braco_dir, perna_esq, perna_dir]
     return cenario, partes_corpo
 
-# --- LOGGING ---
 class AppLogger:
-    def __init__(self, text_control, scroll_container, page):
-        self.text_control = text_control
-        self.scroll_container = scroll_container
+    def __init__(self, list_view_control, page):
+        self.list_view = list_view_control
         self.page = page
 
     def log(self, message):
-        # Adiciona quebra de linha visual para separar pensamentos
-        self.text_control.value += f"• {message}\n\n"
-        self.page.update()
-        try:
-            self.scroll_container.scroll_to(offset=-1, duration=300)
-        except:
-            pass
+        cor_texto = "#333333"
+        icone = "•"
+        
+        if "VITÓRIA" in message: cor_texto = "green"
+        elif "DERROTA" in message: cor_texto = "red"
+        elif "Certeza" in message: cor_texto = "blue"
+        elif "Arriscando" in message: cor_texto = "#E65100"
 
-# --- MAIN APP ---
+        item = ft.Container(
+            content=ft.Row([
+                ft.Text(icone, color="#9E9E9E", size=10),
+                ft.Text(message, color=cor_texto, font_family="Consolas, monospace", size=13, selectable=True)
+            ], vertical_alignment=ft.CrossAxisAlignment.START),
+            padding=ft.padding.only(bottom=5)
+        )
+        
+        self.list_view.controls.append(item)
+        self.page.update()
+
 def main(page: ft.Page):
-    page.title = "Jogo da Forca - IA"
+    page.title = "Jogo da Forca - IA vs Humano"
     page.theme_mode = ft.ThemeMode.LIGHT
-    page.window_width = 1000  # Janela mais larga para caber tudo
+    page.window_width = 1000 
     page.window_height = 700
     page.padding = 20
+    page.bgcolor = "#F5F7FA"
     
-    # --- LADO ESQUERDO: CONTROLES E JOGO ---
     
-    titulo = ft.Text("🤖 Forca IA", size=30, weight="bold", color="blue")
+    titulo = ft.Container(
+        content=ft.Row([
+            ft.Icon("psychology", color="white", size=28),
+            ft.Text("Configuração", size=20, weight="bold", color="white")
+        ], alignment=ft.MainAxisAlignment.CENTER),
+        bgcolor="#2196F3",
+        padding=15,
+        border_radius=10,
+        shadow=ft.BoxShadow(blur_radius=5, color="#00000020")
+    )
     
     txt_palavra = ft.TextField(
         label="Palavra Secreta", 
         password=True, 
         can_reveal_password=True,
-        width=250
+        border_color="#2196F3",
+        text_size=14,
+        dense=True
     )
     
     dd_dificuldade = ft.Dropdown(
@@ -91,114 +109,109 @@ def main(page: ft.Page):
             ft.dropdown.Option("3", "Difícil (4 vidas)"),
         ],
         value="2",
-        width=150
+        border_color="#2196F3",
+        text_size=14,
+        dense=True
     )
 
-    btn_iniciar = ft.ElevatedButton(
-        "INICIAR JOGO", 
-        icon="play_arrow", 
-        style=ft.ButtonStyle(
-            color="white", 
-            bgcolor="green", 
-            shape=ft.RoundedRectangleBorder(radius=5)
-        ),
-        height=50,
-        width=400
+    btn_iniciar = ft.Container(
+        content=ft.Text("INICIAR / REINICIAR", size=14, weight="bold", color="white"),
+        bgcolor="#4CAF50",
+        padding=12,
+        border_radius=8,
+        alignment=ft.alignment.center,
+        shadow=ft.BoxShadow(blur_radius=5, color="#00000020"),
+        animate=ft.Animation(300, "easeOut"),
+        on_click=None
     )
 
-    lbl_vidas = ft.Text("Vidas: --/--", size=20, weight="bold")
+    lbl_vidas = ft.Text("Vidas: --", size=18, weight="bold", color="#FF5722")
+    
     lbl_palavra = ft.Text(
         "_ _ _ _ _", 
-        size=35, 
+        size=32, 
         weight="bold", 
         font_family="monospace",
-        color="blue"
+        color="#2196F3",
+        text_align=ft.TextAlign.CENTER
     )
     
     visual_forca, partes_forca = criar_forca_grafica()
     
-    # Container do visual do jogo (Fundo azulado claro)
-    area_jogo = ft.Container(
+    area_visual_jogo = ft.Container(
         content=ft.Column([
             lbl_vidas,
             ft.Container(height=10),
             visual_forca,
-            ft.Container(height=30),
+            ft.Container(height=10),
             lbl_palavra
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-        padding=30,
-        border=ft.border.all(1, "grey"),
+        padding=20,
         border_radius=15,
-        bgcolor="#F0F4F8",
+        bgcolor="white",
+        shadow=ft.BoxShadow(blur_radius=10, color="#00000010"),
         alignment=ft.alignment.center
     )
 
-    coluna_esquerda = ft.Column(
-        controls=[
-            titulo,
-            ft.Row([txt_palavra, dd_dificuldade], alignment="spaceBetween"),
-            ft.Container(height=10),
-            btn_iniciar,
-            ft.Container(height=20),
-            area_jogo
-        ],
-        width=450,
-        scroll="auto"
-    )
 
-    # --- LADO DIREITO: CÉREBRO DA IA ---
-    
-    txt_log = ft.Text(
-        "", 
-        size=16,          # Letra maior
-        font_family="Consolas, monospace", 
-        color="#333333",
-        selectable=True
-    )
-    
-    container_log = ft.Column(
-        [txt_log],
-        scroll=ft.ScrollMode.ALWAYS, # Sempre permite scroll
+    lista_log = ft.ListView(
+        expand=True,
+        spacing=2,
+        padding=10,
         auto_scroll=True,
     )
 
-    # Container estilo "Terminal" ou "Log Card"
     area_cerebro = ft.Container(
         content=ft.Column([
             ft.Container(
                 content=ft.Row([
-                    ft.Icon("psychology", color="white"),
-                    ft.Text("PENSAMENTOS DO AGENTE", color="white", weight="bold")
+                    ft.Icon("terminal", color="#424242", size=20),
+                    ft.Text("RACIOCÍNIO DO AGENTE", color="#424242", weight="bold", size=14),
+                    ft.Container(expand=True),
+                    ft.Icon("memory", color="#2196F3", size=20)
                 ]),
-                bgcolor="blue",
-                padding=10,
-                border_radius=ft.border_radius.only(top_left=10, top_right=10)
+                padding=ft.padding.only(bottom=10),
+                border=ft.border.only(bottom=ft.BorderSide(1, "#E0E0E0"))
             ),
-            ft.Container(
-                content=container_log,
-                padding=15,
-                expand=True # Ocupa todo o espaço restante vertical
-            )
+            lista_log
         ]),
-        border=ft.border.all(1, "grey"),
-        border_radius=10,
+        border_radius=15,
         bgcolor="white",
-        expand=True # Ocupa todo o espaço restante horizontal
-    )
-
-    coluna_direita = ft.Column(
-        controls=[area_cerebro],
+        padding=15,
+        shadow=ft.BoxShadow(blur_radius=10, color="#00000010"),
         expand=True
     )
 
-    # --- LÓGICA DO JOGO ---
+
+    coluna_esquerda = ft.Column(
+        controls=[
+            titulo,
+            ft.Container(height=10),
+            txt_palavra,
+            dd_dificuldade,
+            btn_iniciar,
+            ft.Divider(),
+            area_visual_jogo
+        ],
+        width=300,
+        scroll=ft.ScrollMode.AUTO
+    )
+
+    layout_principal = ft.Row(
+        controls=[
+            coluna_esquerda,
+            ft.VerticalDivider(width=20, color="transparent"),
+            area_cerebro
+        ],
+        expand=True
+    )
+
     def jogar_thread(palavra_secreta, max_vidas):
-        logger = AppLogger(txt_log, container_log, page)
+        logger = AppLogger(lista_log, page)
         
         def app_print(texto="", end="\n"):
             logger.log(str(texto))
 
-        # Reset visual
         for parte in partes_forca:
             parte.opacity = 0
         page.update()
@@ -207,7 +220,7 @@ def main(page: ft.Page):
             ambiente = Ambiente(palavra_secreta, max_vidas)
             agente = Agente(ambiente, max_vidas)
         except Exception as e:
-            app_print(f"Erro ao inicializar: {e}")
+            app_print(f"Erro Crítico: {e}")
             return
 
         def atualizar_interface_visual():
@@ -223,35 +236,36 @@ def main(page: ft.Page):
         ambiente.mostrar_estado_jogo = atualizar_interface_visual
         
         agente.tam_palavra = len(palavra_secreta)
-        app_print(f"--- NOVA PARTIDA: Palavra de {len(palavra_secreta)} letras ---")
-        app_print(f"Memória: {len(agente.banco_palavras)} palavras conhecidas.")
+        app_print(f"--- NOVA PARTIDA INICIADA ---")
+        app_print(f"Alvo: Palavra de {len(palavra_secreta)} letras")
+        app_print(f"Conhecimento: {len(agente.banco_palavras)} palavras no banco.")
         
         while not agente.Objetivo and ambiente.vidas_restantes > 0:
             ambiente.mostrar_estado_jogo()
-            app_print("🤔 Analisando possibilidades...")
-            time.sleep(1.2) # Um pouco mais lento para ler os pensamentos
+            app_print("Processando...")
+            time.sleep(1.0)
             
             letra_chute, palavra_chute = agente.agir()
             
             if palavra_chute:
-                if len(agente.banco_filtrado) == 1:
-                    app_print(f"💡 Certeza absoluta: É '{palavra_chute}'!")
+                if len(agente.banco_filtrado) <= 2:
+                    app_print(f"💡 ALTA CONFIANÇA: Chute '{palavra_chute}'")
                 else:
-                    app_print(f"🎲 Arriscando tudo na palavra: '{palavra_chute}'")
+                    app_print(f"🎲 TENTATIVA DE RISCO: '{palavra_chute}'")
             elif letra_chute:
-                app_print(f"👉 Escolho a letra: {letra_chute}")
+                app_print(f"🔎 Analisando letra: [{letra_chute}]")
             else:
-                app_print("😓 Não sei mais o que fazer...")
+                app_print("⚠️ Falha lógica: Sem opções viáveis.")
                 break
             
             resultado = ambiente.verificarLetra(letra_chute, palavra_chute)
             
             if resultado == True:
                 agente.letrasCertas.append(letra_chute)
-                app_print("✅ Acertei a letra!")
+                app_print(f"✅ Sucesso! A letra '{letra_chute}' existe.")
             elif resultado == False:
                 agente.letrasErradas.append(letra_chute)
-                app_print("❌ Errei a letra...")
+                app_print(f"❌ Falha. A letra '{letra_chute}' não existe.")
             elif resultado == "Acertou":
                 agente.Objetivo = True
                 agente.adicionar_palavra_ao_banco(palavra_chute)
@@ -259,7 +273,7 @@ def main(page: ft.Page):
             elif resultado == "Errou":
                 if palavra_chute:
                     agente.palavrasErradas.append(palavra_chute)
-                    app_print(f"🚫 '{palavra_chute}' não é a palavra.")
+                    app_print(f"🚫 A palavra '{palavra_chute}' está incorreta.")
             
             flg_acertou = ambiente.mostrarPalavra(resultado == True, letra_chute if letra_chute else "")
             if flg_acertou:
@@ -267,49 +281,45 @@ def main(page: ft.Page):
                 agente.adicionar_palavra_ao_banco(ambiente.palavraObj)
                 break
             
-            time.sleep(0.5)
+            time.sleep(0.3)
 
         ambiente.mostrar_estado_jogo()
         if agente.Objetivo:
-            app_print(f"\n🎉 VITÓRIA! A palavra era {palavra_secreta} 🎉")
-            lbl_palavra.color = "green"
+            app_print(f"🎉 VITÓRIA! Palavra descoberta: {palavra_secreta}")
+            lbl_palavra.color = "#4CAF50"
             lbl_palavra.value = palavra_secreta
         else:
-            app_print(f"\n💀 DERROTA... A palavra era {palavra_secreta}")
-            lbl_palavra.color = "red"
+            app_print(f"💀 DERROTA. A palavra era: {palavra_secreta}")
+            lbl_palavra.color = "#F44336"
             lbl_palavra.value = palavra_secreta
             agente.adicionar_palavra_ao_banco(ambiente.palavraObj)
             
         btn_iniciar.disabled = False
-        btn_iniciar.text = "JOGAR NOVAMENTE"
+        btn_iniciar.opacity = 1
         page.update()
 
     def on_click_iniciar(e):
         palavra = txt_palavra.value.strip().upper()
         if len(palavra) < 3:
-            txt_log.value = "⚠️ Digite uma palavra válida (min 3 letras)!"
+            item_erro = ft.Text("⚠️ Digite uma palavra válida (min 3 letras)!", color="red")
+            lista_log.controls.append(item_erro)
             page.update()
             return
             
         max_vidas = {"1": 8, "2": 6, "3": 4}[dd_dificuldade.value]
 
         btn_iniciar.disabled = True
-        txt_log.value = "" # Limpa o log antigo
-        lbl_palavra.color = "blue"
+        btn_iniciar.opacity = 0.5
+        
+        lista_log.controls.clear()
+        
+        lbl_palavra.color = "#2196F3"
         lbl_palavra.value = "_ " * len(palavra)
         page.update()
 
         threading.Thread(target=jogar_thread, args=(palavra, max_vidas)).start()
 
     btn_iniciar.on_click = on_click_iniciar
-
-    # MONTAGEM FINAL DO LAYOUT (Lado a Lado)
-    layout_principal = ft.Row(
-        controls=[coluna_esquerda, coluna_direita],
-        expand=True, # Ocupa toda a tela
-        alignment=ft.MainAxisAlignment.START,
-        vertical_alignment=ft.CrossAxisAlignment.START
-    )
 
     page.add(layout_principal)
 
