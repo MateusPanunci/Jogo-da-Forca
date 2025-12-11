@@ -29,22 +29,35 @@ class Agente:
         """Carrega o banco de palavras do arquivo externo e salva no interno"""
         try:
             # Le do banco_externo.txt
-            with open('banco_externo.txt', 'r', encoding='utf-8') as arquivo:
+            with open('banco_agente.txt', 'r', encoding='utf-8') as arquivo:
                 for linha in arquivo:
                     palavra_limpa = linha.strip().upper()
-                    if palavra_limpa and len(palavra_limpa) >= 3:
+                    if palavra_limpa:
                         self.banco_palavras.add(palavra_limpa)
             
-            print(f"Banco do Agente: {len(self.banco_palavras)} palavras carregadas do banco_externo.txt")
-            
-            # Salva no banco_agente.txt
-            self.salvar_banco_palavras()
+            print(f"Memória recuperada! O agente conhece {len(self.banco_palavras)} palavras.")
                 
         except FileNotFoundError:
-            print("Arquivo banco_externo.txt não encontrado. Criando novo banco inicial...")
-            self.banco_palavras.update = (["PYTHON", "JAVA", "FORCA", "PROGRAMA", "COMPUTADOR", 
-                                "JOGO", "DADOS", "ALGORITMO", "INTELIGENCIA", "ARTIFICIAL"])
-            self.salvar_banco_palavras()
+            print("Primeira execução: Lendo banco externo...")
+            try:
+                with open('banco_externo.txt', 'r', encoding='utf-8') as arquivo:
+                    for linha in arquivo:
+                        palavra_limpa = linha.strip().upper()
+                        if palavra_limpa and len(palavra_limpa) >= 3:
+                            self.banco_palavras.add(palavra_limpa)
+                
+                # Salva imediatamente para criar o banco_agente.txt
+                self.salvar_banco_palavras()
+                print(f"Banco inicial criado com {len(self.banco_palavras)} palavras.")
+                
+            except FileNotFoundError:
+                print("ERRO CRÍTICO: Nenhum arquivo de palavras encontrado. Usando backup de emergência.")
+                # LISTA DE EMERGÊNCIA
+                self.banco_palavras.update([
+                    "PYTHON", "JAVA", "FORCA", "PROGRAMA", "COMPUTADOR", 
+                    "JOGO", "DADOS", "ALGORITMO", "INTELIGENCIA", "ARTIFICIAL"
+                ])
+                self.salvar_banco_palavras()
     
     def salvar_banco_palavras(self):
         """Salva o banco de palavras atualizado"""
