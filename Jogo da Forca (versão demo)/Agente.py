@@ -9,6 +9,7 @@ class Agente:
         self.banco_filtrado = []
         self.letrasCertas = []
         self.letrasErradas = []
+        self.palavrasErradas = []
         self.Objetivo = False
         self.ambiente = ambiente
         self.letras = list("ABCÇDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -94,7 +95,7 @@ class Agente:
                     (filtro[i] == '_' or remover_acentos(palavra[i]) == remover_acentos(filtro[i])) and 
                     remover_acentos(palavra[i]) not in self.letrasErradas
                     for i in range(len(palavra))
-                )
+                ) and palavra not in self.palavrasErradas
             ]
     
     def conta_freq_letras(self):
@@ -188,7 +189,7 @@ class Agente:
                 break
             elif resultado == "Errou":
                 if palavra_chute:
-                    self.letrasErradas.extend([l for l in palavra_chute if l not in self.letrasErradas])
+                    self.palavrasErradas.append(palavra_chute)
             
             # Ve se completou a palavra com letras
             flg_acertou_palavra = self.ambiente.mostrarPalavra(resultado == True, letra_chute if letra_chute else "")
