@@ -1,17 +1,17 @@
 from Ambiente import Ambiente
+from Ambiente import remover_acentos
 import random
 import time 
 
-
 class Agente:
     def __init__(self, ambiente: Ambiente, max_vidas=6):
-        self.banco_palavras = []
+        self.banco_palavras = set()
         self.banco_filtrado = []
         self.letrasCertas = []
         self.letrasErradas = []
         self.Objetivo = False
         self.ambiente = ambiente
-        self.letras = list("AÁÀÂÃBCÇDEÉÊFGHIÍJKLMNOÓÔÕPQRSTUÚVWXYZ")
+        self.letras = list("ABCÇDEFGHIJKLMNOPQRSTUVWXYZ")
         self.max_vidas = max_vidas
         
         # Carregar banco de palavras (começa vazio e cresce)
@@ -20,7 +20,7 @@ class Agente:
         # Verifica que banco_agente.txt ta atualizado
         try:
             with open('banco_agente.txt', 'r', encoding='utf-8') as f:
-                palavras_salvas = len([linha.strip() for linha in f if linha.strip()])
+                palavras_salvas = sum(1 for line in f if line.strip())
                 print(f"Banco salvo tem {palavras_salvas} palavras.")
         except FileNotFoundError:
             print("banco_agente.txt ainda não existe, será criado quando salvar.")
@@ -33,7 +33,7 @@ class Agente:
                 for linha in arquivo:
                     palavra_limpa = linha.strip().upper()
                     if palavra_limpa and len(palavra_limpa) >= 3:
-                        self.banco_palavras.append(palavra_limpa)
+                        self.banco_palavras.add(palavra_limpa)
             
             print(f"Banco do Agente: {len(self.banco_palavras)} palavras carregadas do banco_externo.txt")
             
@@ -42,8 +42,8 @@ class Agente:
                 
         except FileNotFoundError:
             print("Arquivo banco_externo.txt não encontrado. Criando novo banco inicial...")
-            self.banco_palavras = ["PYTHON", "JAVA", "FORCA", "PROGRAMA", "COMPUTADOR", 
-                                "JOGO", "DADOS", "ALGORITMO", "INTELIGENCIA", "ARTIFICIAL"]
+            self.banco_palavras.update = (["PYTHON", "JAVA", "FORCA", "PROGRAMA", "COMPUTADOR", 
+                                "JOGO", "DADOS", "ALGORITMO", "INTELIGENCIA", "ARTIFICIAL"])
             self.salvar_banco_palavras()
     
     def salvar_banco_palavras(self):
@@ -51,7 +51,7 @@ class Agente:
 
         try:
             with open('banco_agente.txt', 'w', encoding='utf-8') as arquivo:
-                for palavra in sorted(set(self.banco_palavras)):  # Remove duplicatas
+                for palavra in sorted(self.banco_palavras):
                     arquivo.write(palavra + '\n')
         except Exception as e:
             print(f"Erro ao salvar banco: {e}")
@@ -60,7 +60,7 @@ class Agente:
         """Adiciona uma nova palavra ao banco se não existir"""
         palavra = palavra.upper()
         if palavra not in self.banco_palavras and len(palavra) >= 3:
-            self.banco_palavras.append(palavra)
+            self.banco_palavras.add(palavra)
             print(f"Palavra '{palavra}' adicionada ao banco do agente!")
             self.salvar_banco_palavras()
     
@@ -78,8 +78,8 @@ class Agente:
             self.banco_filtrado = [
                 palavra for palavra in self.banco_filtrado
                 if all(
-                    (filtro[i] == '_' or palavra[i] == filtro[i]) and 
-                    palavra[i] not in self.letrasErradas
+                    (filtro[i] == '_' or remover_acentos(palavra[i]) == remover_acentos(filtro[i])) and 
+                    remover_acentos(palavra[i]) not in self.letrasErradas
                     for i in range(len(palavra))
                 )
             ]
@@ -93,7 +93,7 @@ class Agente:
 
             contador = 0 
             for palavra in self.banco_filtrado:  
-                if letra in palavra: 
+                if remover_acentos(letra) in remover_acentos(palavra): 
                     contador += 1
             
             if len(self.banco_filtrado) > 0:
@@ -119,13 +119,6 @@ class Agente:
                     letra in self.letras):
                     print(f"Agente: A letra {letra} está na palavra?")
                     return letra, ""
-            
-            # Se todas as letras comuns foram tentadas, tentar qualquer uma
-            for letra in self.letras:
-                if letra not in self.letrasCertas and letra not in self.letrasErradas:
-                    print(f"Agente: A letra {letra} está na palavra?")
-                    return letra, ""
-            
             return None, None
         
         print(f"Palavras possíveis no banco: {len(self.banco_filtrado)}")
@@ -134,23 +127,17 @@ class Agente:
         if len(self.banco_filtrado) <= 5:
             print(f"(Palavras possíveis: {', '.join(self.banco_filtrado)})")
         
+        #Cenário de certeza
+        if len(self.banco_filtrado) == 1:
+            palavra_chute = self.banco_filtrado[0]
+            print(f"Agente: Só pode ser '{palavra_chute}'!")
+            return None, palavra_chute
+        
         # Chutar se tem 1-3 palavras e estamos com poucas vidas
-        if len(self.banco_filtrado) <= 3 and self.ambiente.vidas_restantes > 0:
-            # Se só tem UMA palavra é certeza
-            if len(self.banco_filtrado) <= 3 and self.ambiente.vidas_restantes > 0:
-                # Escolhe uma palavra ALEATÓRIA da lista
-                palavra_chute = random.choice(self.banco_filtrado)
-                
-                if len(self.banco_filtrado) == 1:
-                    print(f"Agente: Deve ser '{palavra_chute}'!")
-                else:
-                    print(f"Agente: Talvez seja '{palavra_chute}'?")
-                return None, palavra_chute
-            else:
-                # Se tem 2-3 palavras, tentar a primeira
-                palavra_chute = self.banco_filtrado[0]
-                print(f"Agente: Talvez seja '{palavra_chute}'?")
-                return None, palavra_chute
+        if len(self.banco_filtrado) <= 3 and self.ambiente.vidas_restantes <= 2:
+            palavra_chute = random.choice(self.banco_filtrado)
+            print(f"Agente: É minha última vida! Vou arriscar '{palavra_chute}'!")
+            return None, palavra_chute
         
         # Escolhe a melhor letra baseada na frequência
         freq_letras = self.conta_freq_letras()
@@ -173,7 +160,7 @@ class Agente:
                 print("Agente: Não sei mais o que tentar!")
                 break
             
-            time.sleep(1.5)
+            time.sleep(1)
 
             resultado = self.ambiente.verificarLetra(letra_chute, palavra_chute)
             
